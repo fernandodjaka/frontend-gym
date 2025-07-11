@@ -10,13 +10,15 @@ import {
   DialogHeader,
   DialogBody,
   DialogFooter,
+  Spinner, // <-- TAMBAHAN: Impor komponen Spinner
 } from "@material-tailwind/react";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = "http://localhost:8000/api/tujuan-latihan";
+const API_URL = "http://localhost:8000/api/admin/tujuan-latihan";
 
 const TujuanLatihan = () => {
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true); // <-- TAMBAHAN: State untuk mengontrol loading
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState(null);
   const [nama, setNama] = useState("");
@@ -24,7 +26,7 @@ const TujuanLatihan = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("token");
     if (!token) {
       alert("Silakan login terlebih dahulu.");
       return navigate("/auth/login");
@@ -33,6 +35,7 @@ const TujuanLatihan = () => {
   }, []);
 
   const fetchData = async (token) => {
+    setLoading(true); // <-- MODIFIKASI: Set loading ke true sebelum fetch data
     try {
       const res = await axios.get(API_URL, {
         headers: {
@@ -46,6 +49,8 @@ const TujuanLatihan = () => {
         alert("Sesi Anda telah berakhir. Silakan login kembali.");
         navigate("/auth/login");
       }
+    } finally {
+      setLoading(false); // <-- TAMBAHAN: Set loading ke false setelah proses selesai (baik sukses/gagal)
     }
   };
 
@@ -66,7 +71,7 @@ const TujuanLatihan = () => {
   const handleSave = async () => {
     if (!nama.trim()) return;
 
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("token");
     const formData = new FormData();
     formData.append("nama", nama);
     if (foto) formData.append("foto", foto);
@@ -93,16 +98,19 @@ const TujuanLatihan = () => {
   };
 
   const handleDelete = async (id) => {
-    const token = localStorage.getItem("access_token");
-    try {
-      await axios.delete(`${API_URL}/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      fetchData(token);
-    } catch (error) {
-      console.error("Gagal menghapus data:", error.response?.data || error);
+    // Tambahkan konfirmasi sebelum menghapus untuk UX yang lebih baik
+    if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+      const token = localStorage.getItem("token");
+      try {
+        await axios.delete(`${API_URL}/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        fetchData(token);
+      } catch (error) {
+        console.error("Gagal menghapus data:", error.response?.data || error);
+      }
     }
   };
 
@@ -118,54 +126,63 @@ const TujuanLatihan = () => {
 
       <Card>
         <CardBody className="overflow-x-auto">
-          <table className="w-full min-w-max table-auto text-left">
-            <thead>
-              <tr>
-                <th className="p-2 border-b border-blue-gray-100">#</th>
-                <th className="p-2 border-b border-blue-gray-100">Nama Tujuan</th>
-                <th className="p-2 border-b border-blue-gray-100">Foto</th>
-                <th className="p-2 border-b border-blue-gray-100 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((item, idx) => (
-                <tr key={item.id}>
-                  <td className="p-2 border-b">{idx + 1}</td>
-                  <td className="p-2 border-b">{item.nama}</td>
-                  <td className="p-2 border-b">
-                    {item.foto ? (
-                      <img
-                        src={`http://localhost:8000/${item.foto}`}
-                        alt="Foto"
-                        className="h-16"
-                      />
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="p-2 border-b text-right space-x-2">
-                    <Button size="sm" onClick={() => handleOpen(item)}>
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      color="red"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Hapus
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {data.length === 0 && (
+          {/* -- MODIFIKASI: Tampilkan Spinner atau Tabel berdasarkan state 'loading' -- */}
+          {loading ? (
+            <div className="flex justify-center items-center py-10">
+              <Spinner className="h-12 w-12 text-blue-500" />
+            </div>
+          ) : (
+            <table className="w-full min-w-max table-auto text-left">
+              <thead>
                 <tr>
-                  <td colSpan={4} className="text-center py-4 text-gray-400">
-                    Tidak ada data tujuan latihan.
-                  </td>
+                  <th className="p-2 border-b border-blue-gray-100">#</th>
+                  <th className="p-2 border-b border-blue-gray-100">Nama Tujuan</th>
+                  <th className="p-2 border-b border-blue-gray-100">Foto</th>
+                  <th className="p-2 border-b border-blue-gray-100 text-right">Aksi</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.length > 0 ? (
+                  data.map((item, idx) => (
+                    <tr key={item.id}>
+                      <td className="p-2 border-b">{idx + 1}</td>
+                      <td className="p-2 border-b">{item.nama}</td>
+                      <td className="p-2 border-b">
+                        {item.foto ? (
+                          <img
+                            src={`http://localhost:8000/${item.foto}`}
+                            alt="Foto"
+                            className="h-16 rounded-md object-cover"
+                          />
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="p-2 border-b text-right space-x-2">
+                        <Button size="sm" onClick={() => handleOpen(item)}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          color="red"
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          Hapus
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  // Pesan ini hanya akan muncul jika loading selesai dan data benar-benar kosong
+                  <tr>
+                    <td colSpan={4} className="text-center py-4 text-gray-400">
+                      Tidak ada data tujuan latihan.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </CardBody>
       </Card>
 

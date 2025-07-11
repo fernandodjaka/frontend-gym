@@ -1,370 +1,267 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardBody,
-  Typography,
-  Button,
-  Dialog,
-  DialogHeader,
-  DialogBody,
-  DialogFooter,
-  Textarea,
-  IconButton,
-  Avatar,
-  Chip
-} from "@material-tailwind/react";
-import {
-  RocketLaunchIcon,
-  ChatBubbleOvalLeftEllipsisIcon,
-  ChartBarSquareIcon,
-  XMarkIcon,
-  ArrowPathIcon,
-  SparklesIcon
-} from "@heroicons/react/24/solid";
-import { FiSend } from "react-icons/fi";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import Navbar from "../../component/navbar";
+import { motion, AnimatePresence } from "framer-motion";
+import Chatbot from "./chatbot"; // [LANGKAH 1] Impor komponen chatbot
 
-const UserDashboard = () => {
-  const navigate = useNavigate();
-  const [openChat, setOpenChat] = useState(false);
-  const [message, setMessage] = useState("");
-  const [chat, setChat] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [expertMode, setExpertMode] = useState(false);
-  const chatContainerRef = useRef(null);
+// --- Ikon-ikon ---
+const UserIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>;
+const LogoutIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>;
+const TargetIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.82m5.84-2.56a6 6 0 01-1.27 8.17m-4.57 0A6 6 0 015.63 7.18m5.96 5.19a6 6 0 01-3.56 3.56m0-8.74a6 6 0 018.74 0M12 21a9 9 0 110-18 9 9 0 010 18z" /></svg>;
+const CalculatorIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V13.5zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-5.186 0-9.443 4.025-9.726 9.118A.75.75 0 003 12h18a.75.75 0 00.726-.632C21.443 6.275 17.186 2.25 12 2.25z" /></svg>;
+const PlayIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" /></svg>;
 
-  // Initialize chat with welcome message
-  useEffect(() => {
-    if (openChat && chat.length === 0) {
-      setChat([{
-        role: "assistant",
-        content: "Halo! Saya Digital Fitness Assistant. Saya bisa membantu dengan:\n\n• Program latihan\n• Nutrisi\n• Teknik olahraga\n• Rekomendasi berdasarkan tujuan Anda\n\nApa yang bisa saya bantu hari ini?",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        system: true
-      }]);
-    }
-  }, [openChat]);
-
-  // Auto-scroll to bottom of chat
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [chat]);
-
-  const handleOpenChat = () => {
-    setOpenChat(!openChat);
-    if (!openChat) {
-      const button = document.getElementById('chat-button');
-      if (button) {
-        button.classList.add('animate-bounce');
-        setTimeout(() => button.classList.remove('animate-bounce'), 1000);
-      }
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!message.trim() || loading) return;
-  
-    const userMessage = {
-      role: "user",
-      content: message,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-  
-    setChat(prev => [...prev, userMessage]);
-    setMessage("");
-    setLoading(true);
-  
-    try {
-      const response = await axios.post(
-        "http://localhost:8000/api/gemini/generate",
-        { 
-          prompt: message,
-          mode: expertMode ? "expert" : "basic"
-        },
-        { 
-          headers: { 'Content-Type': 'application/json' } 
-        }
-      );
-  
-      const aiMessage = {
-        role: "assistant",
-        content: response.data.advice || response.data.text || "Tidak dapat memproses permintaan",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isTrainer: true,
-        type: response.data.type || 'general'
-      };
-  
-      setChat(prev => [...prev, aiMessage]);
-    } catch (err) {
-      console.error("Error:", err.response?.data || err.message);
-      setChat(prev => [
-        ...prev,
-        {
-          role: "assistant",
-          content: err.response?.data?.error || "Terjadi gangguan sementara. Silakan coba lagi.",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          error: true
-        }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const clearChat = () => {
-    setChat([{
-      role: "assistant",
-      content: "Halo! Ada yang bisa saya bantu mengenai fitness hari ini?",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      system: true
-    }]);
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-[url('/img/homefit-bg.jpg')] bg-cover bg-center bg-no-repeat bg-white/70">
-      {/* Navbar Fixed */}
-      <Navbar />
-      
-      {/* Main Content with padding for fixed navbar */}
-      <main className="pt-24 min-h-screen px-6 pb-10">
-        <div className="text-center mb-12">
-          <Typography
-            variant="h2"
-            className="font-extrabold text-blue-800 drop-shadow-lg"
-          >
-            Selamat Datang di <span className="text-blue-600">HomeFit</span> 🏋️‍♀️
-          </Typography>
-          <Typography className="mt-3 text-blue-gray-700 max-w-2xl mx-auto text-lg">
-            Wujudkan tubuh sehat dan ideal dari kenyamanan rumah Anda. Mulai perjalanan fitnessmu dengan fitur-fitur terbaik kami.
-          </Typography>
-        </div>
-
-        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto">
-          {/* Kalkulator Lemak */}
-          <Card className="shadow-lg bg-white/80 hover:shadow-xl hover:-translate-y-1 transition">
-            <CardBody className="text-center space-y-4">
-              <RocketLaunchIcon className="w-12 h-12 mx-auto text-blue-600" />
-              <Typography variant="h5" className="font-semibold">
-                Kalkulator Lemak Tubuh
-              </Typography>
-              <Typography className="text-sm text-blue-gray-700">
-                Hitung kadar lemak tubuh berdasarkan data BMI, usia, dan jenis kelamin Anda.
-              </Typography>
-              <Button onClick={() => navigate("/kalkulator-fat")} color="blue">
-                Hitung Sekarang
-              </Button>
-            </CardBody>
-          </Card>
-
-          {/* Program Latihan */}
-          <Card className="shadow-lg bg-white/80 hover:shadow-xl hover:-translate-y-1 transition">
-            <CardBody className="text-center space-y-4">
-              <ChartBarSquareIcon className="w-12 h-12 mx-auto text-purple-700" />
-              <Typography variant="h5" className="font-semibold">
-                Cek Program Latihan
-              </Typography>
-              <Typography className="text-sm text-blue-gray-700">
-                Temukan program latihan yang sesuai dengan tujuan dan levelmu.
-              </Typography>
-              <Button onClick={() => navigate("/program")} color="purple">
-                Lihat Program
-              </Button>
-            </CardBody>
-          </Card>
-        </div>
-
-        {/* Motivational Quote */}
-        <div className="mt-16 text-center max-w-xl mx-auto text-blue-gray-800">
-          <Typography variant="h6" className="italic">
-            "Disiplin adalah kunci. Kamu tidak perlu gym mahal, kamu hanya perlu komitmen."
-          </Typography>
-        </div>
-      </main>
-
-      {/* Floating Chat Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          id="chat-button"
-          onClick={handleOpenChat}
-          className={`relative bg-gradient-to-br from-green-500 to-green-600 text-white rounded-full p-4 shadow-xl transition-all hover:shadow-2xl hover:scale-105 ${openChat ? 'rotate-12' : ''}`}
-        >
-          <ChatBubbleOvalLeftEllipsisIcon className="w-8 h-8" />
-          {!openChat && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center text-xs font-bold animate-pulse">
-              !
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Chat Dialog */}
-      <Dialog
-        open={openChat}
-        handler={handleOpenChat}
-        size="xl"
-        className="rounded-2xl overflow-hidden border border-gray-200 shadow-2xl"
-      >
-        <DialogHeader className="bg-gradient-to-r from-green-500 to-blue-600 p-4 text-white">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-full">
-                <SparklesIcon className="w-6 h-6" />
-              </div>
-              <div>
-                <Typography variant="h5" className="font-bold">
-                  Fitness AI Assistant
-                </Typography>
-                <Typography variant="small" className="opacity-80 flex items-center gap-1">
-                  <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                  {loading ? "Mengetik..." : "Online"}
-                </Typography>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Chip
-                value={expertMode ? "Expert Mode" : "Basic Mode"}
-                color={expertMode ? "amber" : "green"}
-                className="cursor-pointer transition-all hover:scale-105 shadow-sm"
-                onClick={() => setExpertMode(!expertMode)}
-              />
-              <IconButton
-                variant="text"
-                color="white"
-                onClick={clearChat}
-                disabled={chat.length <= 1}
-                className="rounded-full hover:bg-white/20"
-              >
-                <ArrowPathIcon className="h-5 w-5" />
-              </IconButton>
-              <IconButton
-                variant="text"
-                color="white"
-                onClick={handleOpenChat}
-                className="rounded-full hover:bg-white/20"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </IconButton>
-            </div>
-          </div>
-        </DialogHeader>
-        
-        <DialogBody className="p-0 flex flex-col h-[60vh] bg-gradient-to-b from-gray-50 to-gray-100">
-          <div
-            ref={chatContainerRef}
-            className="flex-1 overflow-y-auto p-6 space-y-4"
-          >
-            {chat.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div className={`flex max-w-[85%] ${msg.role === "user" ? "flex-row-reverse" : ""} gap-3`}>
-                  <div className="relative flex-shrink-0">
-                    <Avatar
-                      src={msg.role === "user" ? "" : "/trainer-ai.jpg"}
-                      alt={msg.role === "user" ? "You" : "Trainer"}
-                      variant="circular"
-                      size="sm"
-                      className={`border-2 ${msg.role === "user" ? "border-blue-500" : "border-orange-500"}`}
-                    />
-                    {msg.role !== "user" && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
-                    )}
-                  </div>
-                  
-                  <div
-                    className={`rounded-2xl p-4 relative ${msg.role === "user"
-                      ? "bg-blue-500 text-white rounded-tr-none shadow-md"
-                      : msg.error
-                        ? "bg-red-100 text-red-800 rounded-tl-none shadow-sm"
-                        : "bg-white text-gray-800 shadow-sm rounded-tl-none"}`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <Typography variant="small" className="font-bold">
-                        {msg.role === "user" ? "Anda" : "AI Trainer"}
-                      </Typography>
-                      <Typography variant="small" className="opacity-70">
-                        {msg.timestamp}
-                      </Typography>
+// --- Komponen-komponen ---
+const Navbar = ({ user }) => {
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+    const userInitial = user?.nama_lengkap ? user.nama_lengkap.charAt(0).toUpperCase() : 'U';
+    return (
+        <nav className="bg-gray-900/50 backdrop-blur-md shadow-lg fixed w-full top-0 z-50">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-16">
+                    <div className="flex-shrink-0">
+                        <a href="/dashboard-user" className="font-bold text-xl text-white">Home<span className="text-blue-400">Fit</span></a>
                     </div>
-                    
-                    <Typography className="whitespace-pre-wrap">
-                      {msg.content}
-                    </Typography>
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {loading && (
-              <div className="flex justify-start">
-                <div className="flex gap-3 max-w-[85%]">
-                  <div className="relative flex-shrink-0">
-                    <Avatar
-                      src="/trainer-ai.jpg"
-                      alt="Trainer"
-                      variant="circular"
-                      size="sm"
-                      className="border-2 border-orange-500"
-                    />
-                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
-                  </div>
-                  <div className="bg-white rounded-2xl rounded-tl-none p-4 shadow-sm">
-                    <div className="flex space-x-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    <div className="hidden md:block">
+                        <div className="ml-10 flex items-center space-x-4">
+                            <a href="/dashboard-user" className="text-white bg-white/10 font-bold px-3 py-2 rounded-md text-sm">Dashboard</a>
+                            <a href="/program" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Program Latihan</a>
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="flex items-center justify-center w-10 h-10 bg-white/10 rounded-full hover:bg-white/20 transition-colors focus:outline-none"
+                                >
+                                    <img 
+                                        src={`https://ui-avatars.com/api/?name=${userInitial}&background=2563eb&color=fff&bold=true`} 
+                                        className="w-10 h-10 rounded-full"
+                                        alt="User Avatar"
+                                    />
+                                </button>
+                                <AnimatePresence>
+                                    {isDropdownOpen && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            className="absolute right-0 mt-3 w-56 bg-gray-800/90 backdrop-blur-xl rounded-lg shadow-2xl z-50 border border-white/10 overflow-hidden"
+                                        >
+                                            <div className="p-4 border-b border-white/10">
+                                                <p className="font-semibold text-white truncate">{user?.nama_lengkap || 'User'}</p>
+                                                <p className="text-sm text-gray-400 truncate">{user?.email}</p>
+                                            </div>
+                                            <div className="py-1">
+                                                <Link to="/profil" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-white/10" onClick={() => setIsDropdownOpen(false)}>
+                                                    <UserIcon className="w-5 h-5"/> Profil Saya
+                                                </Link>
+                                            </div>
+                                            <div className="py-1 border-t border-white/10">
+                                                <a href="#" onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }} className="flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-white/10">
+                                                    <LogoutIcon className="w-5 h-5"/> Logout
+                                                </a>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
                     </div>
-                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div className="border-t border-gray-200 p-4 bg-white">
-            <div className="relative">
-              <Textarea
-                label="Tulis pesan Anda..."
-                rows={2}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="pr-12 text-gray-700 rounded-2xl border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                containerProps={{ className: "min-w-0" }}
-              />
-              <button
-                onClick={sendMessage}
-                disabled={loading || !message.trim()}
-                 className={`absolute right-2 bottom-2 p-2 rounded-full transition-colors ${
-                  loading || !message.trim() 
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                    : 'bg-blue-500 text-white hover:bg-blue-600 shadow-md'
-                }`}
-              >
-                <FiSend className="h-5 w-5" />
-              </button>
             </div>
-            <Typography variant="small" className="mt-2 text-center text-gray-500">
-              {expertMode 
-                ? "Mode Ahli: Jawaban teknis mendalam" 
-                : "Mode Dasar: Jawaban mudah dipahami"}
-            </Typography>
-          </div>
-        </DialogBody>
-      </Dialog>
+        </nav>
+    );
+};
+
+const LoadingScreen = () => (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
+        <div className="w-16 h-16 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
+        <p className="mt-4 text-lg text-gray-300">Memuat data Anda...</p>
     </div>
-  );
+);
+
+const WorkoutProgress = () => {
+    const navigate = useNavigate();
+    const [progress, setProgress] = useState(null);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        const fetchProgress = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) { setLoading(false); return; }
+            try {
+                const response = await axios.get('http://localhost:8000/api/user/progress', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setProgress(response.data);
+            } catch (error) {
+                console.error("Gagal memuat progres latihan:", error);
+                setProgress({ hasActiveProgram: false }); 
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProgress();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 p-6 md:p-8 rounded-2xl shadow-lg animate-pulse">
+                <div className="h-8 bg-gray-700/50 rounded w-3/4 mb-4"></div>
+                <div className="h-4 bg-gray-700/50 rounded w-1/2 mb-8"></div>
+                <div className="h-20 bg-gray-700/50 rounded-2xl"></div>
+            </div>
+        );
+    }
+
+    if (!progress || !progress.hasActiveProgram) {
+        return (
+            <motion.div 
+              className="bg-white/5 backdrop-blur-lg border border-white/10 p-8 rounded-2xl shadow-lg text-center"
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            >
+              <TargetIcon className="w-16 h-16 mx-auto text-purple-400 mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">Mulai Perjalanan Fitness Anda</h3>
+              <p className="text-gray-300 mb-6 max-w-md mx-auto">Anda belum memiliki program aktif. Pilih program latihan untuk memulai.</p>
+              <button onClick={() => navigate('/program')} className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors shadow-lg">
+                  Cari Program Latihan
+              </button>
+           </motion.div>
+        );
+    }
+
+    const { programName, completedSessions, totalSessions, nextSession } = progress;
+    const progressPercentage = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0;
+
+    return (
+        <motion.div
+            className="bg-white/5 backdrop-blur-lg border border-white/10 p-6 md:p-8 rounded-2xl shadow-lg"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        >
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6">
+                <div>
+                    <p className="text-sm text-blue-400 font-semibold">PROGRAM AKTIF ANDA</p>
+                    <h3 className="text-2xl lg:text-3xl font-bold text-white">{programName}</h3>
+                </div>
+            </div>
+            <div className="mb-8">
+                <div className="flex justify-between items-end mb-1">
+                    <p className="text-sm text-gray-300">Progres Sesi</p>
+                    <p className="text-lg font-bold text-white">{completedSessions} <span className="text-sm font-normal text-gray-400">/ {totalSessions} Selesai</span></p>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-3">
+                    <motion.div
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full"
+                        style={{ width: `${progressPercentage}%` }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progressPercentage}%` }}
+                        transition={{ duration: 1, ease: "easeInOut" }}
+                    />
+                </div>
+            </div>
+            <div className="bg-gray-800/50 p-6 rounded-2xl text-center">
+                <p className="text-gray-300 mb-2">Sesi Berikutnya:</p>
+                <h4 className="text-xl font-bold text-white mb-5">{nextSession.name}</h4>
+                <button 
+                    onClick={() => navigate(nextSession.path)} 
+                    className="w-full max-w-xs mx-auto flex items-center justify-center gap-3 bg-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-700 transition-all duration-300 shadow-lg transform hover:scale-105"
+                >
+                    <PlayIcon />
+                    Lanjutkan Latihan
+                </button>
+            </div>
+        </motion.div>
+    );
+};
+
+
+// --- Komponen Utama Dashboard ---
+const UserDashboard = () => {
+    const navigate = useNavigate();
+    const [user, setUser] = useState(null);
+    const [pageLoading, setPageLoading] = useState(true);
+    const [greeting, setGreeting] = useState('');
+    
+    useEffect(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) setGreeting('Selamat Pagi');
+        else if (hour < 18) setGreeting('Selamat Siang');
+        else setGreeting('Selamat Malam');
+
+        const token = localStorage.getItem('token');
+        if (!token) { navigate('/login'); return; }
+
+        const fetchUserData = async () => {
+            try {
+                const userResponse = await axios.get('http://localhost:8000/api/user', { headers: { Authorization: `Bearer ${token}` } });
+                setUser(userResponse.data);
+            } catch (error) {
+                console.error("Gagal mengambil data pengguna:", error);
+                if(error.response?.status === 401) navigate('/login');
+            } finally {
+                setPageLoading(false);
+            }
+        };
+        fetchUserData();
+    }, [navigate]);
+    
+    if (pageLoading) {
+        return <LoadingScreen />;
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-900 text-white font-sans">
+            <div className="absolute inset-x-0 top-0 h-[50vh] bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070&auto=format&fit=crop')"}}></div>
+            <div className="absolute inset-x-0 top-0 h-[50vh] bg-gradient-to-b from-transparent to-gray-900"></div>
+            
+            <div className="relative z-10">
+                <Navbar user={user} />
+                <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+                    <header className="mb-12">
+                        <motion.h1 initial={{y: 20, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{duration: 0.5}} className="text-4xl md:text-5xl font-extrabold tracking-tight">{greeting}, {user?.nama_lengkap || 'Pejuang Fitness'}!</motion.h1>
+                        <motion.p initial={{y: 20, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{duration: 0.5, delay: 0.1}} className="mt-2 text-lg text-gray-300">Siap untuk menjadi lebih kuat hari ini? Mari kita mulai.</motion.p>
+                    </header>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                        <motion.div 
+                            initial={{y: 20, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{duration: 0.5, delay: 0.2}} 
+                            onClick={() => navigate("/program")} 
+                            className="group relative bg-white/5 backdrop-blur-lg border border-white/10 p-8 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-transform duration-300 overflow-hidden cursor-pointer"
+                        >
+                            <TargetIcon className="h-12 w-12 mb-4 text-purple-400"/>
+                            <h2 className="text-2xl font-bold mb-2">Program Latihan</h2>
+                            <p className="opacity-80">Temukan program yang dirancang untuk mencapai tujuanmu.</p>
+                        </motion.div>
+                        
+                        <motion.div 
+                            initial={{y: 20, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{duration: 0.5, delay: 0.3}} 
+                            onClick={() => navigate("/kalkulator-fat")} 
+                            className="group relative bg-white/5 backdrop-blur-lg border border-white/10 p-8 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-transform duration-300 overflow-hidden cursor-pointer"
+                        >
+                            <CalculatorIcon className="h-12 w-12 mb-4 text-green-400"/>
+                            <h2 className="text-2xl font-bold mb-2">Kalkulator Lemak</h2>
+                            <p className="opacity-80">Lacak persentase lemak tubuh Anda untuk memantau kemajuan.</p>
+                        </motion.div>
+                    </div>
+
+                    <div>
+                        <WorkoutProgress />
+                    </div>
+
+                </main>
+            </div>
+            
+            {/* [LANGKAH 2] Render komponen Chatbot di sini dan berikan prop user */}
+            <Chatbot user={user} />
+        </div>
+    );
 };
 
 export default UserDashboard;

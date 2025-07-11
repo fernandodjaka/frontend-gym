@@ -1,18 +1,26 @@
 import {
   HomeIcon,
   UserCircleIcon,
-  TableCellsIcon,
-  InformationCircleIcon,
-  ServerStackIcon,
-  RectangleStackIcon,
+  // TableCellsIcon,
+  // InformationCircleIcon,
+  // ServerStackIcon,
+  // RectangleStackIcon,
+  // ArrowRightOnRectangleIcon,
+  // UserPlusIcon,
+  // PencilIcon,
 } from "@heroicons/react/24/solid";
 import { Home, Profile, Tables, Notifications } from "@/pages/dashboard";
-import { SignIn, SignUp, Register, IsiDataDiri } from "@/pages/auth";
+import { SignIn, Register, IsiDataDiri } from "@/pages/auth";
 // import { TujuanLatihan } from "@/pages/latihan";
 import TujuanLatihan from "@/pages/latihan/tujuan_latian";
-import LandingPage from "./pages/auth/landingpage";
+// import LandingPage from "./pages/auth/landingpage";
 import ProgramLatihan from "./pages/latihan/program_latian";
-import DetailLatihan from "./pages/latihan/detail_latihan";
+
+import SesiLatihanAdminPage from "./pages/latihan/sesi_latihan";
+import DetailLatihanAdminPage from "./pages/latihan/detail_latihan";
+import AdminUsersPage from "./pages/dashboard/AdminUsersPage";
+
+
 
 
 
@@ -32,30 +40,12 @@ export const routes = [
         path: "/home",
         element: <Home />,
       },
-      // {
-      //   icon: <UserCircleIcon {...icon} />,
-      //   name: "profile",
-      //   path: "/profile",
-      //   element: <Profile />,
-      // },
-      // {
-      //   icon: <TableCellsIcon {...icon} />,
-      //   name: "tables",
-      //   path: "/tables",
-      //   element: <Tables />,
-      // }
-      // {
-      //   icon: <TableCellsIcon {...icon} />,
-      //   name: "tujuan latihan",
-      //   path: "/tujuan-latihan",
-      //   element: <Tables />,
-      // },
-      // {
-      //   icon: <InformationCircleIcon {...icon} />,
-      //   name: "notifications",
-      //   path: "/notifications",
-      //   element: <Notifications />,
-      // },
+      {
+        icon: <UserCircleIcon {...icon} />,
+        name: "Data Pengguna",
+        path: "/profile-users",
+        element: <AdminUsersPage />,
+      },
     ],
   },
   {
@@ -77,42 +67,51 @@ export const routes = [
       },
       {
         icon: <UserCircleIcon {...icon} />,
+        name: "Sesi Latihan",
+        path: "/latihan",
+        element: <SesiLatihanAdminPage />,
+      },
+
+      {
+        icon: <UserCircleIcon {...icon} />,
         name: "Detail Latihan",
         path: "/detail-latihan",
-        element: <DetailLatihan />,
+        element: <DetailLatihanAdminPage />,
       },
     ],
   },
-  {
-    title: "auth pages",
-    layout: "auth",
-    pages: [
-      {
-        icon: <ServerStackIcon {...icon} />,
-        name: "sign in",
-        path: "/sign-in",
-        element: <SignIn />,
-      },
-      {
-        icon: <RectangleStackIcon {...icon} />,
-        name: "LandingPAge",
-        path: "/landing-page",
-        element: <LandingPage />,
-      },
-      {
-        icon: <RectangleStackIcon {...icon} />,
-        name: "register",
-        path: "/register",
-        element: <Register />,
-      },
-      {
-        icon: <RectangleStackIcon {...icon} />,
-        name: "IsiDataDiri",
-        path: "/isi-data-diri",
-        element: <IsiDataDiri />,
-      },
-    ],
-  }
+  
+  // {
+  //   layout: "auth",
+  //   // title: "Autentikasi Pengguna",
+  //   pages: [
+  //     // {
+  //     //   // icon: <ArrowRightOnRectangleIcon {...icon} />,
+  //     //   // name: "Masuk",
+  //     //   path: "/sign-in",
+  //     //   element: <SignIn />,
+  //     // },
+  //     // {
+  //     //   // icon: <UserPlusIcon {...icon} />,
+  //     //   // name: "Daftar",
+  //     //   path: "/landing-page",
+  //     //   element: <LandingPage />,
+  //     // },
+  //     // {
+  //     //   // icon: <PencilIcon {...icon} />,
+  //     //   // name: "Lengkapi Profil",
+  //     //   path: "/isi-data-diri",
+  //     //   element: <IsiDataDiri />,
+  //     // },
+
+  //     // {
+  //     //   // name: "Register",
+  //     //   path: "/register",
+  //     //   element: <Register />,
+  //     // },
+  //   ],
+  // }
+
 ];
 
 export default routes;
